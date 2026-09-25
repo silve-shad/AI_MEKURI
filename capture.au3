@@ -1,5 +1,7 @@
 AutoItSetOption("MustDeclareVars", 1)
 
+#AutoIt3Wrapper_Change2CUI=N
+
 #include <Misc.au3>
 #include <MsgBoxConstants.au3>
 
@@ -10,6 +12,7 @@ AutoItSetOption("MustDeclareVars", 1)
 ; 対応サイト: DAYS、ヤングジャンプ、BookWalker、ebook、Komiflo、FUZ。
 
 Const $LASTUPDATE  =  "260618"
+Const $BUILD_DATE  =  "2026-09-25"
 
 ; グローバルホットキー
 HotKeySet("{ESC}", "Abort")
@@ -136,7 +139,7 @@ func main()
    local $NBF
 
    If _Singleton("CapMac", 1) = 0 Then
-	   MsgBox($MB_SYSTEMMODAL, "Warning", "dN")
+	   MsgBox($MB_SYSTEMMODAL, "Warning", "二重起動はできません")
 	   Exit
    EndIf
 
@@ -188,7 +191,7 @@ func main()
 			  SoundPlay(@WindowsDir & "\media\tada.wav",1)
 				   Select
 					Case $EndMode = $EM_HANYOU
-							MsgBOX( 0, "PAUSE", "p Auto End Detect" )
+							MsgBOX( 0, "PAUSE", "汎用 Auto End Detect" )
 							$startstop=0
 					Case $EndMode = $EM_KOMIFLO
 							MsgBOX( 0, "PAUSE", "KOMIFLO Auto End Detect" )
@@ -199,7 +202,7 @@ func main()
 							$startstop=0
 					Case $EndMode = $EM_YMWEB
 						  ; DAYS モードの処理設定
-							MsgBOX( 0, "PAUSE", "}KWEB Auto End Detect" )
+							MsgBOX( 0, "PAUSE", "ヤングジャンプ Web Auto End Detect" )
 							$startstop=0
 					Case $EndMode = $EM_EBOOK
 						  ; ebook の処理設定
@@ -384,31 +387,31 @@ Func EndMode_Change()
 	Select
 	Case $EndMode = $EM_HANYOU
 		$PageKind = 3
-		MsgBOX( 0, "PAUSE", "ypz/DMM/" )
+		MsgBOX( 0, "PAUSE", "汎用 (DMM)" )
 	Case $EndMode = $EM_DAYS
 		$PageKind = 3
-		MsgBOX( 0, "PAUSE", "R~bNDAYS" )
+		MsgBOX( 0, "PAUSE", "コミック DAYS" )
 	Case $EndMode = $EM_YMWEB
 		$PageKind = 3
-		MsgBOX( 0, "PAUSE", "}KWEB" )
+		MsgBOX( 0, "PAUSE", "ヤングジャンプ Web" )
 	Case $EndMode = $EM_EBOOK
 		$PageKind = 3
-		MsgBOX( 0, "PAUSE", "EbookAi+j" )
+		MsgBOX( 0, "PAUSE", "ebookjapan" )
 	Case $EndMode = $EM_JUMP
 		$PageKind = 3
-		MsgBOX( 0, "PAUSE", "Wv{IA" )
+		MsgBOX( 0, "PAUSE", "少年ジャンププラス" )
 	Case $EndMode = $EM_KOMIFLO
 		$PageKind = 3
 		MsgBOX( 0, "PAUSE", "KomiFlo" )
 	Case $EndMode = $EM_TONARIYJ
 		$PageKind = 3
-		MsgBOX( 0, "PAUSE", "()WA" )
+		MsgBOX( 0, "PAUSE", "となりのヤングジャンプ" )
 	Case $EndMode = $EM_FUZ
 		$PageKind = 3
 		MsgBOX( 0, "PAUSE", "COMIC FUZ" )
 	Case $EndMode = $EM_BOOKWALKER
 		$PageKind = 3
-		MsgBOX( 0, "PAUSE", "BookWalkerw" )
+		MsgBOX( 0, "PAUSE", "BookWalker" )
 	case Else
 	endselect
 EndFunc
@@ -572,7 +575,7 @@ endfunc
 
 ; ESC キーで常駐処理を終了する。
 Func Abort()
-	  MsgBOX( 0, "Exit",  $LASTUPDATE & "<Program End>" )
+	  MsgBOX( 0, "Exit",  "最終ビルド日: " & $BUILD_DATE & @CRLF & "更新番号: " & $LASTUPDATE & @CRLF & "<Program End>" )
 	  Exit
 EndFunc
 
@@ -601,10 +604,10 @@ EndFunc
 Func DaysMode_Change()
 	if $DaysMode=0 Then
 		$DaysMode=1
-		MsgBOX( 0, "DAYSMODE", "" )
+		MsgBOX( 0, "DAYSMODE", "定期購読モード" )
 	Else
 		$DaysMode=0
-		MsgBOX( 0, "DAYSMODE", "" )
+		MsgBOX( 0, "DAYSMODE", "通常モード" )
 	EndIf
 EndFunc
 
