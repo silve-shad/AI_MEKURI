@@ -965,36 +965,26 @@ endfunc
 
 
 
-Func JumpPlusLoading( $xx,$yy )
-   if  ( True = call( "LoadingBackCheck",$D_JUMPPLUS_BACKCOLOR,$xx,$yy ) ) Then
-	  return 20
-   Else
-	  return 0
-   endif
+; ローディング色の判定結果を共通形式で返す。
+Func Func_IsLoadingColor($color, $xx, $yy)
+	If LoadingBackCheck($color, $xx, $yy) Then Return 20
+	Return 0
 EndFunc
 
-Func ToYoungJumpLoading( $xx,$yy )
-   if  ( True = call( "LoadingBackCheck",$D_YOUNGJUMP_BACKCOLOR,$xx,$yy ) ) Then
-	  return 20
-   Else
-	  return 0
-   endif
+Func JumpPlusLoading($xx, $yy)
+	Return Func_IsLoadingColor($D_JUMPPLUS_BACKCOLOR, $xx, $yy)
 EndFunc
 
-Func YoungJumpTeikiLoading( $xx,$yy )
-   if  ( True = call( "LoadingBackCheck",$D_YOUNGJUMP_TEIKI_BACKCOLOR,$xx,$yy ) ) Then
-	  return 20
-   Else
-	  return 0
-   endif
+Func ToYoungJumpLoading($xx, $yy)
+	Return Func_IsLoadingColor($D_YOUNGJUMP_BACKCOLOR, $xx, $yy)
 EndFunc
 
-Func ComicDaysLoading( $xx,$yy )
-   if  ( True = call( "LoadingBackCheck",$D_CDAYS_BACKCOLOR,$xx,$yy ) ) Then
-	  return 20
-   Else
-	  return 0
-   endif
+Func YoungJumpTeikiLoading($xx, $yy)
+	Return Func_IsLoadingColor($D_YOUNGJUMP_TEIKI_BACKCOLOR, $xx, $yy)
+EndFunc
+
+Func ComicDaysLoading($xx, $yy)
+	Return Func_IsLoadingColor($D_CDAYS_BACKCOLOR, $xx, $yy)
 EndFunc
 
 ; DAYS モードの処理設定
@@ -1042,20 +1032,13 @@ Func SbnAbs( $aa,$bb )
 EndFunc
 
 Func BookWalkerLoading( $xx,$yy )
-   if  (( True = call( "LoadingBackCheck",$D_BW_BACKCOLOR[0],$xx,$yy ))  Or _
-	  ( True = call( "LoadingBackCheck",$D_BW_BACKCOLOR[1],$xx,$yy )) ) Then
-	  return 20
-   Else
-	  return 0
-   endif
+	 If LoadingBackCheck($D_BW_BACKCOLOR[0], $xx, $yy) Or _
+			LoadingBackCheck($D_BW_BACKCOLOR[1], $xx, $yy) Then Return 20
+	 Return 0
 EndFunc
 
 Func EbookJapanLoading( $xx,$yy )
-   if  ( True = call( "LoadingBackCheck",$D_EB_BACKCOLOR, $xx,$yy )) Then
-	  return 20
-   Else
-	  return 0
-   endif
+	 Return Func_IsLoadingColor($D_EB_BACKCOLOR, $xx, $yy)
 EndFunc
 
 ; デバッグログにメッセージを追記する。
