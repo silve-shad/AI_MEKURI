@@ -176,50 +176,7 @@ func main()
 
 		 WriteDebugLog("Mekuri -> V(END):" & $ENDsum & " | O(bef0):" & $befsum[0] & " | 2O(bef1):" & $befsum[1] & " | 3O(bef2):" & $befsum[2])
 
-			Select
-			Case $EndMode = $EM_DAYS
-				  ; DAYS モードの処理設定
-				  if ( $NextMachi = true ) Then
-					 $NextMachi = False
-					 sleep(5000)
-				  endif
-				  if ( $DaysMode=1 ) then
-					 if (  False = call("DaysBackColor")  ) Then
-						$NextMachi = True
-						sleep(5000)
-					 endif
-				  endif
-				   ; DAYS モードの処理設定
-				   $NextMachi = call ("Proc_DaysNext")
-			Case $EndMode = $EM_YMWEB
-				  if ( $NextMachi = true ) Then
-					 $NextMachi = False
-					 sleep(5000)
-				  endif
-				   $NextMachi = call ("Proc_YMNext")
-			Case $EndMode = $EM_FUZ
-				  ; FUZ の処理設定
-				  if ( $NextMachi = true ) Then
-					 $NextMachi = False
-					 sleep(5000)
-				  endif
-				    ; FUZ の処理設定
-				   $NextMachi = call ("Proc_FuzNext")
-			Case $EndMode = $EM_KOMIFLO
-				  ; Komiflo の処理設定
-				  if (( False = Call("Func_IsColorArea",$DKM_END_PIXEL_X,$DKM_END_PIXEL_Y,$DKM_END_COL[0]) ) And _
-					 ( False = Call("Func_IsColorArea",$DKM_END_PIXEL_X,$DKM_END_PIXEL_Y,$DKM_END_COL[1]) )) then
-						SoundPlay(@WindowsDir & "\media\notify.wav",1)
-						Send ($D_CAPTURE_KEY)
-						$ENDsum = call ("Proc_Mekuri")
-						; Komiflo の処理設定
-						mousemove ( $D_WIDTH/2 ,($D_HEIGHT/2 )-300)
-						mousemove ( $D_WIDTH/2 ,$D_HEIGHT/2  )
-						mousemove ( $D_WIDTH/2 ,$D_HEIGHT/2  -150 )
-						sleep ( 500 )
-				  endif
-			case Else
-			endSelect
+			Proc_HandleMode($NextMachi, $ENDsum)
 
 		   if $startstop=1 then
 
@@ -270,6 +227,45 @@ func main()
 endfunc
 
 
+
+; モードごとのページ送りと終了判定を実行する。
+Func Proc_HandleMode(ByRef $NextMachi, ByRef $ENDsum)
+	Select
+	Case $EndMode = $EM_DAYS
+		If $NextMachi Then
+			$NextMachi = False
+			Sleep(5000)
+		EndIf
+		If $DaysMode = 1 And Not DaysBackColor() Then
+			$NextMachi = True
+			Sleep(5000)
+		EndIf
+		$NextMachi = Proc_DaysNext()
+	Case $EndMode = $EM_YMWEB
+		If $NextMachi Then
+			$NextMachi = False
+			Sleep(5000)
+		EndIf
+		$NextMachi = Proc_YMNext()
+	Case $EndMode = $EM_FUZ
+		If $NextMachi Then
+			$NextMachi = False
+			Sleep(5000)
+		EndIf
+		$NextMachi = Proc_FuzNext()
+	Case $EndMode = $EM_KOMIFLO
+		If Not Func_IsColorArea($DKM_END_PIXEL_X, $DKM_END_PIXEL_Y, $DKM_END_COL[0]) And _
+			Not Func_IsColorArea($DKM_END_PIXEL_X, $DKM_END_PIXEL_Y, $DKM_END_COL[1]) Then
+			SoundPlay(@WindowsDir & "\media\notify.wav", 1)
+			Send($D_CAPTURE_KEY)
+			$ENDsum = Proc_Mekuri()
+			MouseMove($D_WIDTH / 2, ($D_HEIGHT / 2) - 300)
+			MouseMove($D_WIDTH / 2, $D_HEIGHT / 2)
+			MouseMove($D_WIDTH / 2, ($D_HEIGHT / 2) - 150)
+			Sleep(500)
+		EndIf
+	EndSelect
+EndFunc
 
 ; 画面変化とローディング状態を確認し、一回分のページめくりを完了する。
 Func Proc_Mekuri()
