@@ -106,6 +106,10 @@ global $DFZ_COLOR
 
 ; 実行状態とタイマー
 global $Timer[10]
+Global $ConfigKeys[128]
+Global $ConfigValues[128]
+Global $ConfigCount = 0
+Global $ConfigLoaded = False
 
 global $PageKind = 3
 ; NOX の処理設定
@@ -636,46 +640,64 @@ Func Proc_Action()
 EndFunc
 
 
-; INI から指定した設定値を取得する。
-Func Func_GetParaValue(  $filename ,$para  )
-	local $fp
-	local $line
-	local $ret
+; INI を一度だけ読み込み、設定値をメモリ上へ保持する。
+Func Func_LoadConfig($filename)
+	Local $fp
+	Local $line
+	Local $separator
+	Local $key
+	Local $value
 
 	If StringInStr($filename, "\") = 0 Then
 		$filename = @ScriptDir & "\" & $filename
 	EndIf
 
 	$fp = FileOpen($filename, 0)
-
 	If $fp = -1 Then
 		MsgBox(0, "Error", "設定ファイルを開けません: " & $filename)
-		Exit
+		Return False
 	EndIf
-
-	$ret = ""
 
 	While 1
 		$line = FileReadLine($fp)
 		If @error = -1 Then ExitLoop
-		If StringLen(StringStripWS($line, 3)) = 0 Then ContinueLoop
-		If StringLeft(StringStripWS($line, 3), 1) = ";" Then ContinueLoop
+		$line = StringStripWS($line, 3)
+		If StringLen($line) = 0 Or StringLeft($line, 1) = ";" Then ContinueLoop
 
-		Local $separator = StringInStr($line, "=")
-		If $separator > 0 And StringStripWS(StringLeft($line, $separator - 1), 3) = $para Then
-			$ret = StringStripWS(StringMid($line, $separator + 1), 3)
-			If StringLeft($ret, 1) = '"' And StringRight($ret, 1) = '"' Then
-				$ret = StringTrimRight(StringTrimLeft($ret, 1), 1)
-			EndIf
-			FileClose($fp)
-			Return $ret
+		$separator = StringInStr($line, "=")
+		If $separator <= 0 Or $ConfigCount >= UBound($ConfigKeys) Then ContinueLoop
+
+		$key = StringStripWS(StringLeft($line, $separator - 1), 3)
+		$value = StringStripWS(StringMid($line, $separator + 1), 3)
+		If StringLeft($value, 1) = '"' And StringRight($value, 1) = '"' Then
+			$value = StringTrimRight(StringTrimLeft($value, 1), 1)
 		EndIf
+
+		$ConfigKeys[$ConfigCount] = $key
+		$ConfigValues[$ConfigCount] = $value
+		$ConfigCount += 1
 	Wend
 
 	FileClose($fp)
+	$ConfigLoaded = True
+	Return True
+EndFunc
+
+; 読み込み済みの設定値をキー名から取得する。
+Func Func_GetParaValue($filename, $para)
+	Local $index
+
+	If Not $ConfigLoaded Then
+		If Not Func_LoadConfig($filename) Then Exit
+	EndIf
+
+	For $index = 0 To $ConfigCount - 1
+		If $ConfigKeys[$index] = $para Then Return $ConfigValues[$index]
+	Next
+
 	MsgBox(0, "Error", "設定項目が見つかりません: " & $para)
 	Exit
-endfunc
+EndFunc
 
 Func EscapeNotEqual(  $Asum ,  $Xpos, $YPos  )
 	local $NewSum
