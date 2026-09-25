@@ -11,7 +11,7 @@ AutoItSetOption("MustDeclareVars", 1)
 ; 2019-08-20 から 2026-06-18 までのサイト別対応を含む。
 ; 対応サイト: DAYS、ヤングジャンプ、BookWalker、ebook、Komiflo、FUZ。
 
-Const $LASTUPDATE  =  "260618"
+Const $LASTUPDATE  =  "260925"
 Const $BUILD_DATE  =  "2026-09-25"
 
 ; グローバルホットキー
@@ -127,6 +127,8 @@ global $Ebook_CT = 1
 
 global $NextPlus = False
 
+global $MekuriResultValid = False
+
 
 main()
 
@@ -177,13 +179,13 @@ func main()
 			$NBF=False
 		 Endif
 
-		 WriteDebugLog("Mekuri -> V(END):" & $ENDsum & " | O(bef0):" & $befsum[0] & " | 2O(bef1):" & $befsum[1] & " | 3O(bef2):" & $befsum[2])
+			 WriteDebugLog("Mekuri -> V(END):" & $ENDsum & " | Valid:" & $MekuriResultValid & " | O(bef0):" & $befsum[0] & " | 2O(bef1):" & $befsum[1] & " | 3O(bef2):" & $befsum[2])
 
 			Proc_HandleMode($NextMachi, $ENDsum)
 
 		   if $startstop=1 then
 
-			   if ($ENDsum = $befsum[1]) and  ($befsum[0] = $befsum[2])  Then
+			   if $MekuriResultValid And ($ENDsum = $befsum[1]) and  ($befsum[0] = $befsum[2])  Then
 				   $befsum[0]  = 9
 				   $befsum[1]  = 99
 				   $befsum[2]  = 999
@@ -223,9 +225,15 @@ func main()
 				endselect
 			   endif
 		endif
-		$befsum[2] = $befsum[1]
-		$befsum[1] = $befsum[0]
-		$befsum[0] = $ENDsum
+		If $MekuriResultValid Then
+			$befsum[2] = $befsum[1]
+			$befsum[1] = $befsum[0]
+			$befsum[0] = $ENDsum
+               Else
+			$befsum[0] = 0
+			$befsum[1] = 1
+			$befsum[2] = 2
+		EndIf
 	Wend
 endfunc
 
@@ -286,11 +294,15 @@ Func Proc_Mekuri()
    local $CDL
    local $TO
 
+   $MekuriResultValid = False
+   $Bsum = 0
+
     call( "Proc_ResetTimer", 0 )
 
     sleep(500)
 
 	$Asum = call( "KoteiSum")
+	$Bsum = $Asum
 	call( "Proc_Action"  )
     call( "Proc_ResetTimer", 2  )
 
@@ -353,6 +365,7 @@ Func Proc_Mekuri()
 					 if (1 < call( "Func_GetTimer", 2 )) Then
 						Sleep( $waittimer )
 
+						$MekuriResultValid = True
 						$ExitFLG = True
 						exitloop
 					 EndIf
