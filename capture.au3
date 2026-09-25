@@ -848,6 +848,15 @@ Func Proc_JumpPlusNext()
 
 endfunc
 
+; キャプチャキーを指定回数送信し、ページ描画の時間を確保する。
+Func Proc_CaptureBurst($count, $delay)
+	Local $index
+	For $index = 1 To $count
+		Send($D_CAPTURE_KEY)
+		If $index < $count Then Sleep($delay)
+	Next
+EndFunc
+
 ; DAYS モードの処理設定
 Func Proc_DaysNext()
    local $xOpos
@@ -868,12 +877,7 @@ Func Proc_DaysNext()
 	  (-1 <> call( "Func_JudgeX2_Color", $DCD_ENDCOLOR[0], $DCD_ENDCOLOR[1], $xTpos , $ypos-20 , $ypos+20 )) _
 	  ) Then
 			SoundPlay(@WindowsDir & "\media\notify.wav",1)
-			Send ($D_CAPTURE_KEY)
-			sleep ( 1000 )
-			Send ($D_CAPTURE_KEY)
-			sleep ( 1000 )
-			Send ($D_CAPTURE_KEY)
-			sleep ( 1000 )
+			Proc_CaptureBurst(3, 1000)
 			return true
    else
 			return false
@@ -884,12 +888,7 @@ endfunc
 Func Proc_YMNext()
    if  (  $DYM_ENDCOLOR = PixelGetColor( $DYM_ENDPOS[$XXX], $DYM_ENDPOS[$YYY] )  And  ( 16777215 = PixelGetColor( $DYM_ENDPOS[$XXX], $DYM_ENDPOS[$YYY]  - 200 ) ) ) Then
 			SoundPlay(@WindowsDir & "\media\notify.wav",1)
-			Send ($D_CAPTURE_KEY)
-			sleep ( 1000 )
-			Send ($D_CAPTURE_KEY)
-			sleep ( 1000 )
-			Send ($D_CAPTURE_KEY)
-			sleep ( 1000 )
+			Proc_CaptureBurst(3, 1000)
 			return true
    else
 			return false
@@ -900,12 +899,7 @@ endfunc
 Func Proc_FuzNext()
    if  ( $DFZ_COLOR = PixelGetColor( $DFZ_NEXT_X1, $DFZ_NEXT_Y ) ) Then
 			SoundPlay(@WindowsDir & "\media\notify.wav",1)
-			Send ($D_CAPTURE_KEY)
-			sleep ( 1000 )
-			Send ($D_CAPTURE_KEY)
-			sleep ( 1000 )
-			Send ($D_CAPTURE_KEY)
-			sleep ( 1000 )
+			Proc_CaptureBurst(3, 1000)
 
 			MouseClick( "left",$DFZ_NEXT_X1,$DFZ_NEXT_Y )
 			sleep ( 3000 )
@@ -915,12 +909,7 @@ Func Proc_FuzNext()
 			return true
    elseif  ( $DFZ_COLOR = PixelGetColor( $DFZ_NEXT_X2, $DFZ_NEXT_Y ) ) Then
 			SoundPlay(@WindowsDir & "\media\notify.wav",1)
-			Send ($D_CAPTURE_KEY)
-			sleep ( 1000 )
-			Send ($D_CAPTURE_KEY)
-			sleep ( 1000 )
-			Send ($D_CAPTURE_KEY)
-			sleep ( 1000 )
+			Proc_CaptureBurst(3, 1000)
 
 			MouseClick( "left",$DFZ_NEXT_X2,$DFZ_NEXT_Y )
 			sleep ( 3000 )
