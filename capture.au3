@@ -430,8 +430,8 @@ EndFunc
 	$D_YOUNGJUMP_BACKCOLOR = call( "Func_GetParaValue", "capture.ini","D_YOUNGJUMP_BACKCOLOR")
 	$D_YOUNGJUMP_TEIKI_BACKCOLOR = call( "Func_GetParaValue", "capture.ini","D_YOUNGJUMP_TEIKI_BACKCOLOR")
 	$D_CDAYS_BACKCOLOR = call( "Func_GetParaValue", "capture.ini","D_CDAYS_BACKCOLOR")
-	$D_BW_BACKCOLOR[0] = call( "Func_GetParaValue", "capture.ini","D_BW_BACKCOLORA")
-	$D_BW_BACKCOLOR[1] = call( "Func_GetParaValue", "capture.ini","D_BW_BACKCOLORB")
+	$D_BW_BACKCOLOR[0] = call( "Func_GetParaValue", "capture.ini","D_BW_BACKCOLOR1")
+	$D_BW_BACKCOLOR[1] = call( "Func_GetParaValue", "capture.ini","D_BW_BACKCOLOR2")
 
 	$DCD_ENDCOLOR[0] = call( "Func_GetParaValue", "capture.ini","DCD_ENDCOLORA")
 	$DCD_ENDCOLOR[1] = call( "Func_GetParaValue", "capture.ini","DCD_ENDCOLORB")
@@ -642,10 +642,14 @@ Func Func_GetParaValue(  $filename ,$para  )
 	local $line
 	local $ret
 
+	If StringInStr($filename, "\") = 0 Then
+		$filename = @ScriptDir & "\" & $filename
+	EndIf
+
 	$fp = FileOpen($filename, 0)
 
 	If $fp = -1 Then
-		MsgBox(0, "Error", "Unable to open file.")
+		MsgBox(0, "Error", "設定ファイルを開けません: " & $filename)
 		Exit
 	EndIf
 
@@ -654,27 +658,36 @@ Func Func_GetParaValue(  $filename ,$para  )
 	While 1
 		$line = FileReadLine($fp)
 		If @error = -1 Then ExitLoop
-		if 0=StringLen( $line ) Then
-		elseif ";"=Stringleft( $line,1 ) Then
-		elseif ($para & "=") = StringLeft($Line ,  StringLen($para) +1 ) Then
-			$ret = StringMid( $Line,StringLen($para) +2)
-			Exitloop
-		endif
+		If StringLen(StringStripWS($line, 3)) = 0 Then ContinueLoop
+		If StringLeft(StringStripWS($line, 3), 1) = ";" Then ContinueLoop
+
+		Local $separator = StringInStr($line, "=")
+		If $separator > 0 And StringStripWS(StringLeft($line, $separator - 1), 3) = $para Then
+			$ret = StringStripWS(StringMid($line, $separator + 1), 3)
+			If StringLeft($ret, 1) = '"' And StringRight($ret, 1) = '"' Then
+				$ret = StringTrimRight(StringTrimLeft($ret, 1), 1)
+			EndIf
+			FileClose($fp)
+			Return $ret
+		EndIf
 	Wend
 
 	FileClose($fp)
-
-	return  $ret
+	MsgBox(0, "Error", "設定項目が見つかりません: " & $para)
+	Exit
 endfunc
 
 Func EscapeNotEqual(  $Asum ,  $Xpos, $YPos  )
 	local $NewSum
+	Local $timeout = TimerInit()
 
 	while 1
 		$NewSum = call( "AreaSum", $Xpos,$YPos )
 		if $Asum <> $NewSum Then
-			exitloop
+			Return True
 		endif
+		If TimerDiff($timeout) > 30000 Then Return False
+		Sleep(50)
 	wend
 EndFunc
 
@@ -682,6 +695,7 @@ Func EscapeEqualSec(   $Xpos, $YPos , $SecTimer  )
 	local $TimerCt
 	local $Timermax
 	local $Asum
+	Local $timeout = TimerInit()
 
 	$Timermax = $SecTimer*10-1
 	$TimerCt = 0
@@ -698,7 +712,9 @@ Func EscapeEqualSec(   $Xpos, $YPos , $SecTimer  )
 				$TimerCt = 0
 				$Asum = call( "AreaSum", $Xpos,$YPos )
 		EndIf
+		If TimerDiff($timeout) > 60000 Then Return False
 	wend
+	Return True
 EndFunc
 
 
@@ -1022,6 +1038,11 @@ EndFunc
 
 ; デバッグログにメッセージを追記する。
 Func WriteDebugLog($Message)
+	Local $fp = FileOpen(@ScriptDir & "\debug_log.txt", 1)
+	If $fp = -1 Then Return False
+	FileWriteLine($fp, @HOUR & ":" & @MIN & ":" & @SEC & " - " & $Message)
+	FileClose($fp)
+	Return True
 EndFunc
 
 
