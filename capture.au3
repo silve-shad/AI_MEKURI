@@ -77,7 +77,7 @@ global $DYJB_ENDXPOS
 global $DYJB_ENDYPOS
 global $DYJB_ENDXPOS2
 global $DYJB_ENDYPOS2
-global $DYJB_NEXT[2]
+global $DYJB_FULLSCREEN[2]	; 「全画面」ボタン位置
 global $D_YJB_BACKCOLOR
 
 ; Komiflo の処理設定
@@ -475,8 +475,8 @@ EndFunc
    $DYJB_ENDYPOS = call( "Func_GetParaValue", "capture.ini","DYJB_ENDYPOS")
    $DYJB_ENDXPOS2 = call( "Func_GetParaValue", "capture.ini","DYJB_ENDXPOS2")
    $DYJB_ENDYPOS2 = call( "Func_GetParaValue", "capture.ini","DYJB_ENDYPOS2")
-   $DYJB_NEXT[$XXX] = call( "Func_GetParaValue", "capture.ini","DYJB_NEXT_X")
-   $DYJB_NEXT[$YYY] = call( "Func_GetParaValue", "capture.ini","DYJB_NEXT_Y")
+   $DYJB_FULLSCREEN[$XXX] = call( "Func_GetParaValue", "capture.ini","DYJB_FULLSCR_X")
+   $DYJB_FULLSCREEN[$YYY] = call( "Func_GetParaValue", "capture.ini","DYJB_FULLSCR_Y")
    $D_YJB_BACKCOLOR = call( "Func_GetParaValue", "capture.ini","D_YJB_BACKCOLOR")
 
 	$D_WAITTIMER_NORMAL = call( "Func_GetParaValue", "capture.ini","D_WAITTIMER_NORMAL")
@@ -972,7 +972,7 @@ endfunc
 
 ; ヤンジャン(BLUE) の最終ページ表示を色で検出し、検出時は次の話へ進む。
 ; 判定位置は 2 か所（DYJB_ENDXPOS/YPOS と DYJB_ENDXPOS2/YPOS2）で、どちらかで検出すればよい。
-; キャプチャ 3 回 → 検出した座標をダブルクリック → F11 → 指定座標をクリック → 9 秒待機。
+; キャプチャ 3 回 → 検出した座標をダブルクリック → F11 → 「全画面」ボタン（DYJB_FULLSCR）をクリック → 9 秒待機。
 ; 待機後はメインループに戻り、キャプチャキー送信と {LEFT} の通常処理を続ける。
 Func Proc_YJBlueNext()
    local $hitX = -1
@@ -992,12 +992,15 @@ Func Proc_YJBlueNext()
 			Sleep(1000)
 
 			MouseClick( "left", $hitX, $hitY, 2 )
+			; カーソルが残ると検出位置の色が変わるため原点へ退避する
+			MouseMove( 0, 0 )
 			Sleep(3000)
 
 			Send("{F11}")
 			Sleep(2000)
 
-			MouseClick( "left", $DYJB_NEXT[$XXX], $DYJB_NEXT[$YYY], 1 )
+			; 「全画面」ボタンをクリック（判定位置とは無関係の座標）
+			MouseClick( "left", $DYJB_FULLSCREEN[$XXX], $DYJB_FULLSCREEN[$YYY], 1 )
 			Sleep(9000)
 
 			WriteDebugLog("YJBLUE 終端検出 -> 検出座標: " & $hitX & "," & $hitY & " | 次の話へ移動")
