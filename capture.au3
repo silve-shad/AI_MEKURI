@@ -75,6 +75,8 @@ global $DYM_ENDCOLOR
 global $DYJB_ENDCOLOR
 global $DYJB_ENDXPOS
 global $DYJB_ENDYPOS
+global $DYJB_ENDXPOS2
+global $DYJB_ENDYPOS2
 global $DYJB_NEXT[2]
 global $D_YJB_BACKCOLOR
 
@@ -465,6 +467,8 @@ EndFunc
    $DYJB_ENDCOLOR = call( "Func_GetParaValue", "capture.ini","DYJB_ENDCOLOR")
    $DYJB_ENDXPOS = call( "Func_GetParaValue", "capture.ini","DYJB_ENDXPOS")
    $DYJB_ENDYPOS = call( "Func_GetParaValue", "capture.ini","DYJB_ENDYPOS")
+   $DYJB_ENDXPOS2 = call( "Func_GetParaValue", "capture.ini","DYJB_ENDXPOS2")
+   $DYJB_ENDYPOS2 = call( "Func_GetParaValue", "capture.ini","DYJB_ENDYPOS2")
    $DYJB_NEXT[$XXX] = call( "Func_GetParaValue", "capture.ini","DYJB_NEXT_X")
    $DYJB_NEXT[$YYY] = call( "Func_GetParaValue", "capture.ini","DYJB_NEXT_Y")
    $D_YJB_BACKCOLOR = call( "Func_GetParaValue", "capture.ini","D_YJB_BACKCOLOR")
@@ -942,15 +946,27 @@ Func Proc_FuzNext()
 endfunc
 
 ; ヤンジャン(BLUE) の最終ページ表示を色で検出し、検出時は次の話へ進む。
-; キャプチャ 3 回 → 検出座標をダブルクリック → F11 → 指定座標をクリック → 9 秒待機。
+; 判定位置は 2 か所（DYJB_ENDXPOS/YPOS と DYJB_ENDXPOS2/YPOS2）で、どちらかで検出すればよい。
+; キャプチャ 3 回 → 検出した座標をダブルクリック → F11 → 指定座標をクリック → 9 秒待機。
 ; 待機後はメインループに戻り、キャプチャキー送信と {LEFT} の通常処理を続ける。
 Func Proc_YJBlueNext()
+   local $hitX = -1
+   local $hitY = -1
+
    if  (-1 <> call( "Func_JudgeX2_Color", $DYJB_ENDCOLOR, $DYJB_ENDCOLOR, $DYJB_ENDXPOS , $DYJB_ENDYPOS-20 , $DYJB_ENDYPOS+20 )) Then
+			$hitX = $DYJB_ENDXPOS
+			$hitY = $DYJB_ENDYPOS
+   elseif  (-1 <> call( "Func_JudgeX2_Color", $DYJB_ENDCOLOR, $DYJB_ENDCOLOR, $DYJB_ENDXPOS2 , $DYJB_ENDYPOS2-20 , $DYJB_ENDYPOS2+20 )) Then
+			$hitX = $DYJB_ENDXPOS2
+			$hitY = $DYJB_ENDYPOS2
+   endif
+
+   if  ( $hitX <> -1 ) Then
 			SoundPlay(@WindowsDir & "\media\notify.wav",1)
 			Proc_CaptureBurst(3, 1000)
 			Sleep(1000)
 
-			MouseClick( "left", $DYJB_ENDXPOS, $DYJB_ENDYPOS, 2 )
+			MouseClick( "left", $hitX, $hitY, 2 )
 			Sleep(3000)
 
 			Send("{F11}")
@@ -959,7 +975,7 @@ Func Proc_YJBlueNext()
 			MouseClick( "left", $DYJB_NEXT[$XXX], $DYJB_NEXT[$YYY], 1 )
 			Sleep(9000)
 
-			WriteDebugLog("YJBLUE 終端検出 -> 次の話へ移動")
+			WriteDebugLog("YJBLUE 終端検出 -> 検出座標: " & $hitX & "," & $hitY & " | 次の話へ移動")
 			return true
    else
 			return false
