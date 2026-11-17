@@ -132,6 +132,9 @@ global $NextPlus = False
 
 global $MekuriResultValid = False
 
+; True の間はローディング色の判定を広い範囲で行う（タイムアウト後の再判定用）
+global $WideCheck = False
+
 
 main()
 
@@ -176,7 +179,10 @@ func main()
 		 Endif
 
 		 Send ($D_CAPTURE_KEY)
+		 ; 直前がタイムアウトなら、偶然の色一致を避けるためローディング色を広く調べる
+		 $WideCheck = ( $TimeoutCount >= 1 )
 		 $ENDsum = call ("Proc_Mekuri")
+		 $WideCheck = False
 
 		 if ( $NBF=True ) then
 			sleep(3000)
@@ -373,7 +379,7 @@ Func Proc_Mekuri()
 
 	call( "Proc_ResetTimer", 0  )
 
-	WriteDebugLog("Mekuri詳細 -> 初期サム(Asum):" & $Asum & " | 最終サム(Bsum):" & $Bsum & " | ExitFLG:" & $ExitFLG & " | ローディング延長(TO):" & $TO)
+	WriteDebugLog("Mekuri詳細 -> 初期サム(Asum):" & $Asum & " | 最終サム(Bsum):" & $Bsum & " | ExitFLG:" & $ExitFLG & " | ローディング延長(TO):" & $TO & " | 広域判定:" & $WideCheck)
 
    return $Bsum
 endfunc
@@ -540,7 +546,11 @@ Func AreaSum( $xx,$yy )
 	return PixelChecksum( $xx-$D_CHECK_HALF_SIZE,$yy-$D_CHECK_HALF_SIZE,$xx+$D_CHECK_HALF_SIZE ,$yy+$D_CHECK_HALF_SIZE)
 EndFunc
 
+; 指定位置の左右 2 点ずつがローディング色と一致するかを判定する。
+; 広域判定中は画面全体に散らした 12 点がすべて一致したときだけローディングとみなす。
 Func LoadingBackCheck( $color,$xx,$yy )
+   if $WideCheck Then Return LoadingBackCheckWide($color)
+
    if  ((  _
    ( $color = PixelGetColor ( $xx-$D_CHECK_HALF_SIZE, $yy-10 ) )  And _
    ( $color = PixelGetColor ( $xx-$D_CHECK_HALF_SIZE, $yy+10 ) ) ) or _
@@ -551,6 +561,21 @@ Func LoadingBackCheck( $color,$xx,$yy )
    Else
 	  return False
    endif
+EndFunc
+
+; 横 4 点（15%, 30%, 70%, 85%）× 縦 3 点（25%, 50%, 75%）がすべてローディング色か判定する。
+; 中央付近はローディングアイコンが出るため避けている。
+Func LoadingBackCheckWide( $color )
+   Local $xs[4] = [0.15, 0.30, 0.70, 0.85]
+   Local $ys[3] = [0.25, 0.50, 0.75]
+   Local $i, $j
+
+   For $i = 0 To 3
+	  For $j = 0 To 2
+		 If $color <> PixelGetColor( Int($D_WIDTH*$xs[$i]), Int($D_HEIGHT*$ys[$j]) ) Then Return False
+	  Next
+   Next
+   Return True
 EndFunc
 
 Func Func_JudgeX_Color(  $color, $xpos ,$start,$end )
