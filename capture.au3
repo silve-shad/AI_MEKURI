@@ -11,8 +11,6 @@
 ; 2019-08-20 から 2026-06-18 までのサイト別対応を含む。
 ; 対応サイト: DAYS、ヤングジャンプ、BookWalker、ebook、Komiflo、FUZ。
 
-Const $LASTUPDATE  =  "260925"
-Const $BUILD_DATE  =  "2026-09-25"
 
 ; グローバルホットキー
 HotKeySet("{ESC}", "Abort")
@@ -38,7 +36,8 @@ Const $EM_JUMP = 5
 Const $EM_KOMIFLO = 6
 Const $EM_TONARIYJ = 7
 Const $EM_FUZ = 8
-Const $EM_MAX = 8
+Const $EM_YJBLUE = 9
+Const $EM_MAX = 9
 
 ; Capture.ini から読み込む画面・判定設定
 global $D_HEIGHT
@@ -71,6 +70,13 @@ global $DCD_ENDBYPOS
 
 global $DYM_ENDPOS[2]
 global $DYM_ENDCOLOR
+
+; ヤンジャン(BLUE) の終了判定・ローディング色
+global $DYJB_ENDCOLOR
+global $DYJB_ENDXPOS
+global $DYJB_ENDYPOS
+global $DYJB_NEXT[2]
+global $D_YJB_BACKCOLOR
 
 ; Komiflo の処理設定
 global $DKM_END_PIXEL_X
@@ -134,6 +140,7 @@ func main()
    local $ebnext
    local $NextMachi
    local $NBF
+   local $TimeoutCount = 0
 
    If _Singleton("CapMac", 1) = 0 Then
 	   MsgBox($MB_SYSTEMMODAL, "Warning", "二重起動はできません")
@@ -208,6 +215,9 @@ func main()
 					Case $EndMode = $EM_FUZ
 							MsgBOX( 0, "PAUSE", "FUZ Auto End Detect" )
 							$startstop=0
+					Case $EndMode = $EM_YJBLUE
+							MsgBOX( 0, "PAUSE", "ヤンジャン(BLUE) Auto End Detect" )
+							$startstop=0
 					Case $EndMode = $EM_BOOKWALKER
 						  call ("Proc_BookwalkerNext")
 
@@ -215,6 +225,21 @@ func main()
 				endselect
 			   endif
 		endif
+		; ページ遷移なし（タイムアウト）が 3 回続いたら終端とみなして停止する。
+		; 有効なページ遷移が 1 回でもあれば数え直す。
+		If $MekuriResultValid Then
+			$TimeoutCount = 0
+		Else
+			$TimeoutCount += 1
+		EndIf
+		If $startstop = 1 And $TimeoutCount >= 3 Then
+			WriteDebugLog("Timeout Auto End -> 連続タイムアウト:" & $TimeoutCount)
+			SoundPlay(@WindowsDir & "\media\tada.wav",1)
+			MsgBOX( 0, "PAUSE", "Timeout Auto End Detect（ページ遷移なし 3回）" )
+			$startstop = 0
+		EndIf
+		If $startstop = 0 Then $TimeoutCount = 0
+
 		If $MekuriResultValid Then
 			$befsum[2] = $befsum[1]
 			$befsum[1] = $befsum[0]
@@ -254,6 +279,9 @@ Func Proc_HandleMode(ByRef $NextMachi, ByRef $ENDsum)
 			Sleep(5000)
 		EndIf
 		$NextMachi = Proc_FuzNext()
+	Case $EndMode = $EM_YJBLUE
+		$NextMachi = False
+		Proc_YJBlueNext()
 	Case $EndMode = $EM_KOMIFLO
 		If Not Func_IsColorArea($DKM_END_PIXEL_X, $DKM_END_PIXEL_Y, $DKM_END_COL[0]) And _
 			Not Func_IsColorArea($DKM_END_PIXEL_X, $DKM_END_PIXEL_Y, $DKM_END_COL[1]) Then
@@ -276,12 +304,7 @@ Func Proc_Mekuri()
    local $CSum
    local $FSSum
 
-   local $EJL
-   local $JPL
-   local $TYJL
-   local $YJTL
-   local $BWL
-   local $CDL
+   local $LDL
    local $TO
 
    $MekuriResultValid = False
@@ -303,41 +326,15 @@ Func Proc_Mekuri()
 			call( "Proc_ResetTimer", 1  )
 			while 1
 				sleep(300)
-				$EJL = call( "EbookJapanLoading",  $D_WIDTH/2,$D_HEIGHT/2 )
-				$JPL = call( "JumpPlusLoading",  $D_WIDTH/2,$D_HEIGHT/2 )
-				$TYJL = call( "ToYoungJumpLoading",  $D_WIDTH/2,$D_HEIGHT/2 )
-				$YJTL = call( "YoungJumpTeikiLoading",  $D_WIDTH/2,$D_HEIGHT/2 )
-				$BWL = call( "BookWalkerLoading",  $D_WIDTH/2,$D_HEIGHT/2 )
-				$CDL = call( "ComicDaysLoading",  $D_WIDTH/2,$D_HEIGHT/2 )
+				$LDL = Func_ModeLoading( $D_WIDTH/2,$D_HEIGHT/2 )
 
 			   $Csum = call( "KoteiSum")
-				if  ( $Bsum <> $Csum ) or _
-				   ( 0<$EJL ) or _
-				   ( 0<$JPL ) or _
-				   ( 0<$TYJL ) or _
-				   ( 0<$YJTL ) or _
-				   ( 0<$BWL ) or _
-				   ( 0<$CDL )  Then
+				if  ( $Bsum <> $Csum ) or ( 0<$LDL ) Then
 						$Bsum = $Csum
 						$TO =3
 
-						if ( $TO<$EJL ) Then
-						   $TO = $EJL
-						EndIf
-						if ( $TO<$JPL ) Then
-						   $TO = $JPL
-						EndIf
-						if ( $TO<$TYJL ) Then
-						   $TO = $TYJL
-						EndIf
-						if ( $TO<$YJTL ) Then
-						   $TO = $YJTL
-						EndIf
-						if ( $TO<$BWL ) Then
-						   $TO = $BWL
-						EndIf
-						if ( $TO<$CDL ) Then
-						   $TO = $CDL
+						if ( $TO<$LDL ) Then
+						   $TO = $LDL
 						EndIf
 
 						if ( $TO<>3 ) Then
@@ -379,44 +376,55 @@ Func Proc_Mekuri()
    return $Bsum
 endfunc
 
-; 表示モードを切り替え、モードに応じた画面表示を更新する。
+; 表示モードを切り替え、モード名と使用可能なホットキーを表示する。
 Func EndMode_Change()
+	Local $name = ""
+	Local $extra = ""
+
 	$EndMode = $EndMode + 1
 
 	If $EM_MAX < $EndMode Then
 		$EndMode = 0
 	EndIf
 
+	$PageKind = 3
+
 	Select
 	Case $EndMode = $EM_HANYOU
-		$PageKind = 3
-		MsgBOX( 0, "PAUSE", "汎用 (DMM)" )
+		$name = "汎用 (DMM)"
 	Case $EndMode = $EM_DAYS
-		$PageKind = 3
-		MsgBOX( 0, "PAUSE", "コミック DAYS" )
+		$name = "コミック DAYS"
+		$extra = "  Alt+D : 通常／定期購読モード切替（現在: " & Func_DaysModeName() & "）" & @CRLF
 	Case $EndMode = $EM_YMWEB
-		$PageKind = 3
-		MsgBOX( 0, "PAUSE", "ヤングマガジンWEB" )
+		$name = "ヤングマガジンWEB"
 	Case $EndMode = $EM_EBOOK
-		$PageKind = 3
-		MsgBOX( 0, "PAUSE", "ebookjapan" )
+		$name = "ebookjapan"
+		$extra = "  +     : 処理冊数を 1 増やす（現在: " & $Ebook_CT & "）" & @CRLF
 	Case $EndMode = $EM_JUMP
-		$PageKind = 3
-		MsgBOX( 0, "PAUSE", "少年ジャンププラス" )
+		$name = "少年ジャンププラス"
 	Case $EndMode = $EM_KOMIFLO
-		$PageKind = 3
-		MsgBOX( 0, "PAUSE", "KomiFlo" )
+		$name = "KomiFlo"
 	Case $EndMode = $EM_TONARIYJ
-		$PageKind = 3
-		MsgBOX( 0, "PAUSE", "となりのヤングジャンプ" )
+		$name = "となりのヤングジャンプ"
 	Case $EndMode = $EM_FUZ
-		$PageKind = 3
-		MsgBOX( 0, "PAUSE", "COMIC FUZ" )
+		$name = "COMIC FUZ"
 	Case $EndMode = $EM_BOOKWALKER
-		$PageKind = 3
-		MsgBOX( 0, "PAUSE", "BookWalker" )
-	case Else
-	endselect
+		$name = "BookWalker"
+	Case $EndMode = $EM_YJBLUE
+		$name = "ヤンジャン(BLUE)"
+	EndSelect
+
+	MsgBOX( 0, "PAUSE", $name & @CRLF & @CRLF & _
+		"使用可能なホットキー:" & @CRLF & _
+		"  Alt+S : 開始／停止" & @CRLF & _
+		"  Alt+W : 待機時間切替（通常／長め）" & @CRLF & _
+		$extra )
+EndFunc
+
+; DAYS の表示モード名を返す。
+Func Func_DaysModeName()
+	If $DaysMode = 1 Then Return "定期購読モード"
+	Return "通常モード"
 EndFunc
 
 
@@ -453,6 +461,13 @@ EndFunc
    $DYM_ENDPOS[0] = call( "Func_GetParaValue", "capture.ini","DYM_ENDXPOS")
    $DYM_ENDPOS[1] = call( "Func_GetParaValue", "capture.ini","DYM_ENDYPOS")
    $DYM_ENDCOLOR = call( "Func_GetParaValue", "capture.ini","DYM_ENDCOLOR")
+
+   $DYJB_ENDCOLOR = call( "Func_GetParaValue", "capture.ini","DYJB_ENDCOLOR")
+   $DYJB_ENDXPOS = call( "Func_GetParaValue", "capture.ini","DYJB_ENDXPOS")
+   $DYJB_ENDYPOS = call( "Func_GetParaValue", "capture.ini","DYJB_ENDYPOS")
+   $DYJB_NEXT[$XXX] = call( "Func_GetParaValue", "capture.ini","DYJB_NEXT_X")
+   $DYJB_NEXT[$YYY] = call( "Func_GetParaValue", "capture.ini","DYJB_NEXT_Y")
+   $D_YJB_BACKCOLOR = call( "Func_GetParaValue", "capture.ini","D_YJB_BACKCOLOR")
 
 	$D_WAITTIMER_NORMAL = call( "Func_GetParaValue", "capture.ini","D_WAITTIMER_NORMAL")
 	$D_WAITTIMER_LONG = call( "Func_GetParaValue", "capture.ini","D_WAITTIMER_LONG")
@@ -574,8 +589,15 @@ endfunc
 
 ; ESC キーで常駐処理を終了する。
 Func Abort()
-	  MsgBOX( 0, "Exit",  "最終ビルド日: " & $BUILD_DATE & @CRLF & "更新番号: " & $LASTUPDATE & @CRLF & "<Program End>" )
+	  MsgBOX( 0, "Exit",  "最終ビルド日: " & Func_GetBuildDate() & @CRLF & "<Program End>" )
 	  Exit
+EndFunc
+
+; 実行ファイル自身の更新日時をビルド日として返す（.au3 直接実行時はスクリプトの保存日時）。
+Func Func_GetBuildDate()
+	Local $t = FileGetTime(@ScriptFullPath, 0)
+	If @error Then Return "不明"
+	Return $t[0] & "-" & $t[1] & "-" & $t[2] & " " & $t[3] & ":" & $t[4]
 EndFunc
 
 ; 自動ページ送りの開始・停止を切り替える。
@@ -599,8 +621,10 @@ Func WaitTime_Change()
 	EndIf
 EndFunc
 
-; DAYS の表示形式を切り替える。
+; DAYS の表示形式を切り替える。DAYS モード以外では何もしない。
 Func DaysMode_Change()
+	If $EndMode <> $EM_DAYS Then Return
+
 	if $DaysMode=0 Then
 		$DaysMode=1
 		MsgBOX( 0, "DAYSMODE", "定期購読モード" )
@@ -917,6 +941,31 @@ Func Proc_FuzNext()
    endif
 endfunc
 
+; ヤンジャン(BLUE) の最終ページ表示を色で検出し、検出時は次の話へ進む。
+; キャプチャ 3 回 → 検出座標をダブルクリック → F11 → 指定座標をクリック → 9 秒待機。
+; 待機後はメインループに戻り、キャプチャキー送信と {LEFT} の通常処理を続ける。
+Func Proc_YJBlueNext()
+   if  (-1 <> call( "Func_JudgeX2_Color", $DYJB_ENDCOLOR, $DYJB_ENDCOLOR, $DYJB_ENDXPOS , $DYJB_ENDYPOS-20 , $DYJB_ENDYPOS+20 )) Then
+			SoundPlay(@WindowsDir & "\media\notify.wav",1)
+			Proc_CaptureBurst(3, 1000)
+			Sleep(1000)
+
+			MouseClick( "left", $DYJB_ENDXPOS, $DYJB_ENDYPOS, 2 )
+			Sleep(3000)
+
+			Send("{F11}")
+			Sleep(2000)
+
+			MouseClick( "left", $DYJB_NEXT[$XXX], $DYJB_NEXT[$YYY], 1 )
+			Sleep(9000)
+
+			WriteDebugLog("YJBLUE 終端検出 -> 次の話へ移動")
+			return true
+   else
+			return false
+   endif
+endfunc
+
 ; となりのヤングジャンプの次話へ進み、全画面表示に戻す。
 Func Proc_TonaJumpNext()
    MouseClick( "left",$D_YJ_NEXT[$XXX],$D_YJ_NEXT[$YYY],1 )
@@ -949,6 +998,27 @@ endfunc
 
 
 
+; 現在のモードに対応するローディング色だけを判定する。
+; ローディング中なら延長秒数（20）、それ以外や対象外のモードでは 0 を返す。
+Func Func_ModeLoading($xx, $yy)
+	Select
+	Case $EndMode = $EM_EBOOK
+		Return EbookJapanLoading($xx, $yy)
+	Case $EndMode = $EM_JUMP
+		Return JumpPlusLoading($xx, $yy)
+	Case $EndMode = $EM_TONARIYJ
+		If ToYoungJumpLoading($xx, $yy) > 0 Then Return 20
+		Return YoungJumpTeikiLoading($xx, $yy)
+	Case $EndMode = $EM_BOOKWALKER
+		Return BookWalkerLoading($xx, $yy)
+	Case $EndMode = $EM_DAYS
+		Return ComicDaysLoading($xx, $yy)
+	Case $EndMode = $EM_YJBLUE
+		Return YJBlueLoading($xx, $yy)
+	EndSelect
+	Return 0
+EndFunc
+
 ; ローディング色の判定結果を共通形式で返す。
 Func Func_IsLoadingColor($color, $xx, $yy)
 	If LoadingBackCheck($color, $xx, $yy) Then Return 20
@@ -969,6 +1039,10 @@ EndFunc
 
 Func ComicDaysLoading($xx, $yy)
 	Return Func_IsLoadingColor($D_CDAYS_BACKCOLOR, $xx, $yy)
+EndFunc
+
+Func YJBlueLoading($xx, $yy)
+	Return Func_IsLoadingColor($D_YJB_BACKCOLOR, $xx, $yy)
 EndFunc
 
 ; DAYS 定期購読モードで、終了判定位置の周辺が無彩色（グレー系）かを調べる。
