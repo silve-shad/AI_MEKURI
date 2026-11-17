@@ -73,10 +73,8 @@ global $DYM_ENDCOLOR
 
 ; ヤンジャン(BLUE) の終了判定・ローディング色
 global $DYJB_ENDCOLOR
-global $DYJB_ENDXPOS
-global $DYJB_ENDYPOS
-global $DYJB_ENDXPOS2
-global $DYJB_ENDYPOS2
+global $DYJB_ENDAREA_W	; 終端色エリアとみなす最小の幅
+global $DYJB_ENDAREA_H	; 終端色エリアとみなす最小の高さ
 global $DYJB_FULLSCREEN[2]	; 「全画面」ボタン位置
 global $D_YJB_BACKCOLOR
 
@@ -146,6 +144,7 @@ func main()
    local $NextMachi
    local $NBF
    local $TimeoutCount = 0
+   local $YJBMoved = False	; YJBLUE: 終端エリアから遷移した後、まだ有効なページ遷移がない
 
    If _Singleton("CapMac", 1) = 0 Then
 	   MsgBox($MB_SYSTEMMODAL, "Warning", "二重起動はできません")
@@ -233,20 +232,31 @@ func main()
 				endselect
 			   endif
 		endif
-		; ページ遷移なし（タイムアウト）が 3 回続いたら終端とみなして停止する。
+		; ページ遷移なし（タイムアウト）が 3 回続いたら終端とみなす。
 		; 有効なページ遷移が 1 回でもあれば数え直す。
+		; YJBLUE は画面全体から終端色エリアを探し、見つかれば次の話へ遷移して継続する。
+		; 遷移後に一度も有効なページ遷移がないまま再び 3 回タイムアウトした場合は停止する（無限ループ防止）。
 		If $MekuriResultValid Then
 			$TimeoutCount = 0
+			$YJBMoved = False
 		Else
 			$TimeoutCount += 1
 		EndIf
 		If $startstop = 1 And $TimeoutCount >= 3 Then
-			WriteDebugLog("Timeout Auto End -> 連続タイムアウト:" & $TimeoutCount)
-			SoundPlay(@WindowsDir & "\media\tada.wav",1)
-			MsgBOX( 0, "PAUSE", "Timeout Auto End Detect（ページ遷移なし 3回）" )
-			$startstop = 0
+			If $EndMode = $EM_YJBLUE And Not $YJBMoved And Proc_YJBlueNext() Then
+				$YJBMoved = True
+				$TimeoutCount = 0
+			Else
+				WriteDebugLog("Timeout Auto End -> 連続タイムアウト:" & $TimeoutCount)
+				SoundPlay(@WindowsDir & "\media\tada.wav",1)
+				MsgBOX( 0, "PAUSE", "Timeout Auto End Detect（ページ遷移なし 3回）" )
+				$startstop = 0
+			EndIf
 		EndIf
-		If $startstop = 0 Then $TimeoutCount = 0
+		If $startstop = 0 Then
+			$TimeoutCount = 0
+			$YJBMoved = False
+		EndIf
 
 		If $MekuriResultValid Then
 			$befsum[2] = $befsum[1]
@@ -288,8 +298,8 @@ Func Proc_HandleMode(ByRef $NextMachi, ByRef $ENDsum)
 		EndIf
 		$NextMachi = Proc_FuzNext()
 	Case $EndMode = $EM_YJBLUE
+		; 終端判定はページごとには行わず、3 回連続タイムアウト時にメインループから行う
 		$NextMachi = False
-		Proc_YJBlueNext()
 	Case $EndMode = $EM_KOMIFLO
 		If Not Func_IsColorArea($DKM_END_PIXEL_X, $DKM_END_PIXEL_Y, $DKM_END_COL[0]) And _
 			Not Func_IsColorArea($DKM_END_PIXEL_X, $DKM_END_PIXEL_Y, $DKM_END_COL[1]) Then
@@ -471,10 +481,8 @@ EndFunc
    $DYM_ENDCOLOR = call( "Func_GetParaValue", "capture.ini","DYM_ENDCOLOR")
 
    $DYJB_ENDCOLOR = call( "Func_GetParaValue", "capture.ini","DYJB_ENDCOLOR")
-   $DYJB_ENDXPOS = call( "Func_GetParaValue", "capture.ini","DYJB_ENDXPOS")
-   $DYJB_ENDYPOS = call( "Func_GetParaValue", "capture.ini","DYJB_ENDYPOS")
-   $DYJB_ENDXPOS2 = call( "Func_GetParaValue", "capture.ini","DYJB_ENDXPOS2")
-   $DYJB_ENDYPOS2 = call( "Func_GetParaValue", "capture.ini","DYJB_ENDYPOS2")
+   $DYJB_ENDAREA_W = Number(call( "Func_GetParaValue", "capture.ini","DYJB_ENDAREA_W"))
+   $DYJB_ENDAREA_H = Number(call( "Func_GetParaValue", "capture.ini","DYJB_ENDAREA_H"))
    $DYJB_FULLSCREEN[$XXX] = call( "Func_GetParaValue", "capture.ini","DYJB_FULLSCR_X")
    $DYJB_FULLSCREEN[$YYY] = call( "Func_GetParaValue", "capture.ini","DYJB_FULLSCR_Y")
    $D_YJB_BACKCOLOR = call( "Func_GetParaValue", "capture.ini","D_YJB_BACKCOLOR")
@@ -970,45 +978,101 @@ Func Proc_FuzNext()
    endif
 endfunc
 
-; ヤンジャン(BLUE) の最終ページ表示を色で検出し、検出時は次の話へ進む。
-; 判定位置は 2 か所（DYJB_ENDXPOS/YPOS と DYJB_ENDXPOS2/YPOS2）で、どちらかで検出すればよい。
-; キャプチャ 3 回 → 検出した座標をダブルクリック → F11 → 「全画面」ボタン（DYJB_FULLSCR）をクリック → 9 秒待機。
+; ヤンジャン(BLUE) の終端処理。3 回連続タイムアウト時にメインループから呼ばれる。
+; 画面全体から終端色（DYJB_ENDCOLOR）の DYJB_ENDAREA_W × DYJB_ENDAREA_H 以上のエリアを探し、
+; 見つかれば次の話へ遷移して True、見つからなければ False を返す。
+; エリア中心をダブルクリック → F11 → 「全画面」ボタン（DYJB_FULLSCR）をクリック → 9 秒待機。
 ; 待機後はメインループに戻り、キャプチャキー送信と {LEFT} の通常処理を続ける。
 Func Proc_YJBlueNext()
-   local $hitX = -1
-   local $hitY = -1
+   local $area
+   local $hitX
+   local $hitY
 
-   if  (-1 <> call( "Func_JudgeX2_Color", $DYJB_ENDCOLOR, $DYJB_ENDCOLOR, $DYJB_ENDXPOS , $DYJB_ENDYPOS-20 , $DYJB_ENDYPOS+20 )) Then
-			$hitX = $DYJB_ENDXPOS
-			$hitY = $DYJB_ENDYPOS
-   elseif  (-1 <> call( "Func_JudgeX2_Color", $DYJB_ENDCOLOR, $DYJB_ENDCOLOR, $DYJB_ENDXPOS2 , $DYJB_ENDYPOS2-20 , $DYJB_ENDYPOS2+20 )) Then
-			$hitX = $DYJB_ENDXPOS2
-			$hitY = $DYJB_ENDYPOS2
-   endif
+   ; カーソルが乗っていると色が変わるため、探す前に原点へ退避する
+   MouseMove( 0, 0 )
+   Sleep(500)
 
-   if  ( $hitX <> -1 ) Then
-			SoundPlay(@WindowsDir & "\media\notify.wav",1)
-			Proc_CaptureBurst(3, 1000)
-			Sleep(1000)
-
-			MouseClick( "left", $hitX, $hitY, 2 )
-			; カーソルが残ると検出位置の色が変わるため原点へ退避する
-			MouseMove( 0, 0 )
-			Sleep(3000)
-
-			Send("{F11}")
-			Sleep(2000)
-
-			; 「全画面」ボタンをクリック（判定位置とは無関係の座標）
-			MouseClick( "left", $DYJB_FULLSCREEN[$XXX], $DYJB_FULLSCREEN[$YYY], 1 )
-			Sleep(9000)
-
-			WriteDebugLog("YJBLUE 終端検出 -> 検出座標: " & $hitX & "," & $hitY & " | 次の話へ移動")
-			return true
-   else
+   $area = Func_FindColorArea( $DYJB_ENDCOLOR, $DYJB_ENDAREA_W, $DYJB_ENDAREA_H )
+   if @error Then
+			WriteDebugLog("YJBLUE 終端エリアなし -> 停止")
 			return false
    endif
+   $hitX = $area[0]
+   $hitY = $area[1]
+
+   ; 最終ページはタイムアウト待ちの間に 3 回キャプチャ済みのため、ここでは追加しない
+   SoundPlay(@WindowsDir & "\media\notify.wav",1)
+   Sleep(1000)
+
+   MouseClick( "left", $hitX, $hitY, 2 )
+   ; カーソルが残ると検出位置の色が変わるため原点へ退避する
+   MouseMove( 0, 0 )
+   Sleep(3000)
+
+   Send("{F11}")
+   Sleep(2000)
+
+   ; 「全画面」ボタンをクリック（判定位置とは無関係の座標）
+   MouseClick( "left", $DYJB_FULLSCREEN[$XXX], $DYJB_FULLSCREEN[$YYY], 1 )
+   Sleep(9000)
+
+   WriteDebugLog("YJBLUE 終端検出 -> 検出座標: " & $hitX & "," & $hitY & " | 次の話へ移動")
+   return true
 endfunc
+
+; 画面全体から、指定色だけで埋まった $w × $h 以上の矩形エリアを探す。
+; 見つかればエリア中心の座標 [x, y] を返し、なければ @error = 1。
+; PixelSearch で候補点（左上から走査して最初に見つかる点）を探し、そこを左上とする矩形を検証する。
+Func Func_FindColorArea( $color, $w, $h )
+   Local $maxX = $D_WIDTH - 1
+   Local $maxY = $D_HEIGHT - $h
+   Local $x = 0
+   Local $y = 0
+   Local $tries = 0
+   Local $p
+
+   While $tries < 300 And $y <= $maxY
+	  ; 現在行の残り → 見つからなければ次の行以降を探す
+	  $p = PixelSearch( $x, $y, $maxX, $y, $color )
+	  If @error Then
+		 If $y + 1 > $maxY Then ExitLoop
+		 $p = PixelSearch( 0, $y + 1, $maxX, $maxY, $color )
+		 If @error Then ExitLoop
+	  EndIf
+	  $tries += 1
+
+	  If Func_IsColorRect( $color, $p[0], $p[1], $w, $h ) Then
+		 Local $center[2] = [ $p[0] + Int($w / 2), $p[1] + Int($h / 2) ]
+		 Return $center
+	  EndIf
+
+	  ; 次の候補はこの点の右から
+	  $x = $p[0] + 1
+	  $y = $p[1]
+	  If $x > $maxX Then
+		 $x = 0
+		 $y += 1
+	  EndIf
+   WEnd
+   Return SetError(1, 0, 0)
+EndFunc
+
+; ($x, $y) を左上とする $w × $h の矩形が指定色で埋まっているかを 4 ピクセル間隔で確認する。
+Func Func_IsColorRect( $color, $x, $y, $w, $h )
+   Local $i, $j
+   If $x + $w > $D_WIDTH Or $y + $h > $D_HEIGHT Then Return False
+
+   For $j = $y To $y + $h - 1 Step 4
+	  For $i = $x To $x + $w - 1 Step 4
+		 If PixelGetColor( $i, $j ) <> $color Then Return False
+	  Next
+	  If PixelGetColor( $x + $w - 1, $j ) <> $color Then Return False
+   Next
+   For $i = $x To $x + $w - 1 Step 4
+	  If PixelGetColor( $i, $y + $h - 1 ) <> $color Then Return False
+   Next
+   Return True
+EndFunc
 
 ; となりのヤングジャンプの次話へ進み、全画面表示に戻す。
 Func Proc_TonaJumpNext()
