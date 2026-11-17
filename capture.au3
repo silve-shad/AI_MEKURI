@@ -1,4 +1,4 @@
-AutoItSetOption("MustDeclareVars", 1)
+﻿AutoItSetOption("MustDeclareVars", 1)
 
 #AutoIt3Wrapper_Change2CUI=N
 
@@ -64,14 +64,10 @@ global $D_BW_BACKCOLOR[2]
 
 ; DAYS モードの処理設定
 global $DCD_ENDCOLOR[2]
-; DAYS モードの処理設定
 global $DCD_ENDAXPOS[2]
 global $DCD_ENDAYPOS
 global $DCD_ENDBXPOS[2]
 global $DCD_ENDBYPOS
-
-; DAYS モードの処理設定
-global $DCD_FSCREEN[2]
 
 global $DYM_ENDPOS[2]
 global $DYM_ENDCOLOR
@@ -89,7 +85,7 @@ global $D_WAITTIMER_NORMAL
 global $D_WAITTIMER_LONG
 global $waittimer
 
-; ジャンププラス、ヤングジャンプ、ebook の座標設定
+; ジャンププラス、となりのヤングジャンプの座標設定
 global $D_JP_INDEX[2]
 global $D_JP_RESET[2]
 global $D_JP_TOPINDEX[2]
@@ -115,7 +111,6 @@ Global $ConfigCount = 0
 Global $ConfigLoaded = False
 
 global $PageKind = 3
-; NOX の処理設定
 
 global $startstop = 0
 
@@ -179,7 +174,7 @@ func main()
 			$NBF=False
 		 Endif
 
-			 WriteDebugLog("Mekuri -> V(END):" & $ENDsum & " | Valid:" & $MekuriResultValid & " | O(bef0):" & $befsum[0] & " | 2O(bef1):" & $befsum[1] & " | 3O(bef2):" & $befsum[2])
+			 WriteDebugLog("Mekuri完了 -> 最新(END):" & $ENDsum & " | Valid:" & $MekuriResultValid & " | 前(bef0):" & $befsum[0] & " | 2回前(bef1):" & $befsum[1] & " | 3回前(bef2):" & $befsum[2])
 
 			Proc_HandleMode($NextMachi, $ENDsum)
 
@@ -199,26 +194,21 @@ func main()
 							MsgBOX( 0, "PAUSE", "KOMIFLO Auto End Detect" )
 							$startstop=0
 					Case $EndMode = $EM_DAYS
-						  ; DAYS モードの処理設定
 							MsgBOX( 0, "PAUSE", "DAYS Auto End Detect" )
 							$startstop=0
 					Case $EndMode = $EM_YMWEB
-						  ; DAYS モードの処理設定
 							MsgBOX( 0, "PAUSE", "ヤングジャンプ Web Auto End Detect" )
 							$startstop=0
 					Case $EndMode = $EM_EBOOK
-						  ; ebook の処理設定
 						  call ("Proc_EbookJapanNext")
 					Case $EndMode = $EM_JUMP
 						  call ("Proc_JumpPlusNext")
 					Case $EndMode = $EM_TONARIYJ
 						  call ("Proc_TonaJumpNext")
 					Case $EndMode = $EM_FUZ
-					; FUZ の処理設定
 							MsgBOX( 0, "PAUSE", "FUZ Auto End Detect" )
 							$startstop=0
 					Case $EndMode = $EM_BOOKWALKER
-					; BookWalker の処理設定
 						  call ("Proc_BookwalkerNext")
 
 				case Else
@@ -384,7 +374,7 @@ Func Proc_Mekuri()
 
 	call( "Proc_ResetTimer", 0  )
 
-	WriteDebugLog("Mekuri -> T(Asum):" & $Asum & " | IT(Bsum):" & $Bsum & " | ExitFLG:" & $ExitFLG & " | [fBO(TO):" & $TO)
+	WriteDebugLog("Mekuri詳細 -> 初期サム(Asum):" & $Asum & " | 最終サム(Bsum):" & $Bsum & " | ExitFLG:" & $ExitFLG & " | ローディング延長(TO):" & $TO)
 
    return $Bsum
 endfunc
@@ -489,11 +479,7 @@ EndFunc
 	$D_JP_TOPINDEX[$XXX] = call( "Func_GetParaValue", "capture.ini","D_JP_TOPINDEX_X")
 	$D_JP_TOPINDEX[$YYY] = call( "Func_GetParaValue", "capture.ini","D_JP_TOPINDEX_Y")
 
-	$DCD_FSCREEN[$XXX] = call( "Func_GetParaValue", "capture.ini","DCD_FSCREEN_X")
-	$DCD_FSCREEN[$YYY] = call( "Func_GetParaValue", "capture.ini","DCD_FSCREEN_Y")
-
 	$DBW_NEXT_POS[$XXX] = call( "Func_GetParaValue", "capture.ini","DBW_NEXT_POS_X")
-	$DBW_NEXT_POS[$YYY] = call( "Func_GetParaValue", "capture.ini","DBW_NEXT_POS_Y")
 	$DBW_NEXT_COL[0] = call( "Func_GetParaValue", "capture.ini","DBW_NEXT_COL1")
 	$DBW_NEXT_COL[1] = call( "Func_GetParaValue", "capture.ini","DBW_NEXT_COL2")
 
@@ -642,8 +628,7 @@ endFunc
 ; 現在のページ送り方式に応じて入力を実行する。
 Func Proc_Action()
 	Select
-	Case $PageKind = 1 ; NOX の処理設定
-; NOX の処理設定
+	Case $PageKind = 1 ; NOX（未使用）
 	Case $PageKind = 2
 		MouseClick( "left",$D_L_CLICK[$XXX],$D_L_CLICK[$YYY],1 )
 	Case else
@@ -754,16 +739,14 @@ EndFunc
 
 
 
-; ebook の処理設定
+; ebookjapan の次の巻へ進む。残り冊数が 0 になったら停止する。
 Func Proc_ebookJapanNext()
-	  ; ebook の処理設定
 	  local $CenterSum
 
 	  $CenterSum = call( "KoteiSum")
 
 	  $Ebook_CT = $Ebook_CT - 1
 	  if (  0<$Ebook_CT ) Then
-; ebook の処理設定
 			 MouseClick( "left",$DEB_NEXT[$XXX],$DEB_NEXT[$YYY],1 )
 
 			call( "EscapeNotEqual", $CenterSum ,  $D_WIDTH/2 ,$D_HEIGHT/2  )
@@ -780,7 +763,7 @@ Func Proc_ebookJapanNext()
 	  endif
 endfunc
 
-; ebook の処理設定
+; ebookjapan の「次の巻」ボタンを色で探してクリックする（現在未使用）。
 Func Proc_ebookNextBook()
 	local $distance =0
 
@@ -812,7 +795,7 @@ Func Proc_ebookNextBook()
 	wend
 EndFunc
 
-; ebook の処理設定
+; ebookjapan モードで連続処理する冊数を 1 増やす。
 Func ebook_ct_plus()
 	if $EndMode=$EM_EBOOK Then
 	  $Ebook_CT = $Ebook_CT + 1
@@ -869,7 +852,7 @@ Func Proc_CaptureBurst($count, $delay)
 	Next
 EndFunc
 
-; DAYS モードの処理設定
+; DAYS の最終ページ表示を色で検出し、検出時はキャプチャを追加で送る。
 Func Proc_DaysNext()
    local $xOpos
    local $xTpos
@@ -896,7 +879,7 @@ Func Proc_DaysNext()
    endif
 endfunc
 
-; ヤングマガジンWEB の次ページへ進む。
+; ヤングマガジンWEB の最終ページ表示を色で検出し、検出時はキャプチャを追加で送る。
 Func Proc_YMNext()
    if  (  $DYM_ENDCOLOR = PixelGetColor( $DYM_ENDPOS[$XXX], $DYM_ENDPOS[$YYY] )  And  ( 16777215 = PixelGetColor( $DYM_ENDPOS[$XXX], $DYM_ENDPOS[$YYY]  - 200 ) ) ) Then
 			SoundPlay(@WindowsDir & "\media\notify.wav",1)
@@ -907,7 +890,7 @@ Func Proc_YMNext()
    endif
 endfunc
 
-; FUZ の処理設定
+; FUZ の次話ボタンを色で検出し、検出時はキャプチャ後にクリックする。
 Func Proc_FuzNext()
    if  ( $DFZ_COLOR = PixelGetColor( $DFZ_NEXT_X1, $DFZ_NEXT_Y ) ) Then
 			SoundPlay(@WindowsDir & "\media\notify.wav",1)
@@ -934,7 +917,7 @@ Func Proc_FuzNext()
    endif
 endfunc
 
-; となりのヤングジャンプの次ページへ進む。
+; となりのヤングジャンプの次話へ進み、全画面表示に戻す。
 Func Proc_TonaJumpNext()
    MouseClick( "left",$D_YJ_NEXT[$XXX],$D_YJ_NEXT[$YYY],1 )
    sleep(5000)
@@ -943,14 +926,14 @@ Func Proc_TonaJumpNext()
    sleep(2000)
 endfunc
 
-; BookWalker の処理設定
+; BookWalker の次巻ボタンを色で探してクリックする。見つからなければ停止する。
 Func Proc_BookwalkerNext()
 	  local $result[2]
 	  $result[0] =  call( "Func_JudgeX_Color", $DBW_NEXT_COL[0] , $DBW_NEXT_POS[$XXX],430,850 )
 	  $result[1] =  call( "Func_JudgeX_Color", $DBW_NEXT_COL[1] , $DBW_NEXT_POS[$XXX],430,850 )
 	   if  ((-1 <> $result[0] ) Or  (-1 <> $result[1] )) Then
 
-             WriteDebugLog("BW{^m -> XW: " & $DBW_NEXT_POS[$XXX] & " | oY1: " & $result[0] & " | oY2: " & $result[1])
+             WriteDebugLog("BWボタン検知 -> X座標: " & $DBW_NEXT_POS[$XXX] & " | 検出Y1: " & $result[0] & " | 検出Y2: " & $result[1])
 
 			 if  (-1 <> $result[0])  Then
 			  MouseClick( "left",$DBW_NEXT_POS[$XXX],$result[0]+5,1 )
@@ -988,7 +971,7 @@ Func ComicDaysLoading($xx, $yy)
 	Return Func_IsLoadingColor($D_CDAYS_BACKCOLOR, $xx, $yy)
 EndFunc
 
-; DAYS モードの処理設定
+; DAYS 定期購読モードで、終了判定位置の周辺が無彩色（グレー系）かを調べる。
 Func   DaysBackColor( )
    local $xx , $yy
    local $startX

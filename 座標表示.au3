@@ -1,17 +1,14 @@
-; 処理の補足説明
+﻿; マウス位置の座標と色を表示する補助ツール（Capture.ini の設定値調べ用）。
 AutoItSetOption("MustDeclareVars", 1)
 
-; 処理の補足説明
+; ESC: 終了
 HotKeySet("{ESC}", "Abort")
-; 処理の補足説明
+; SPACE: 1 回目で座標を記録し、2 回目でその座標と現在の色を表示
 HotKeySet("{SPACE}", "Display")
 
 global $FLG = False
 Global $XY[1]
 
-; 処理の補足説明
-; 処理の補足説明
-; 処理の補足説明
 main()
 
 func main()
@@ -20,11 +17,7 @@ func main()
    Wend
 endfunc
 
-; 処理の補足説明
-
-; 処理の補足説明
 Func Abort()
-	  ; 処理の補足説明
 	  MsgBOX( 0, "Exit", "<Program End>" )
 	  Exit
 EndFunc
@@ -35,7 +28,7 @@ Func Display()
    if ( $FLG = True   ) Then
 	  $COLOR = PixelGetColor ( $XY[0], $XY[1]  )
 
-	  MsgBOX( 0, "position", "X��"& $XY[0]&  @CRLF & "Y��"  & $XY[1]  & @CRLF & "COLOR��" & $COLOR  )
+	  MsgBOX( 0, "position", "X座標："& $XY[0]&  @CRLF & "Y座標："  & $XY[1]  & @CRLF & "COLOR："  & $COLOR  )
 	  $FLG = False
    Else
 	  $XY = MouseGetPos()
@@ -44,5 +37,3 @@ Func Display()
    endif
 
 EndFunc
-
-
