@@ -197,7 +197,7 @@ func main()
 							MsgBOX( 0, "PAUSE", "DAYS Auto End Detect" )
 							$startstop=0
 					Case $EndMode = $EM_YMWEB
-							MsgBOX( 0, "PAUSE", "ヤングジャンプ Web Auto End Detect" )
+							MsgBOX( 0, "PAUSE", "ヤングマガジンWEB Auto End Detect" )
 							$startstop=0
 					Case $EndMode = $EM_EBOOK
 						  call ("Proc_EbookJapanNext")
@@ -396,7 +396,7 @@ Func EndMode_Change()
 		MsgBOX( 0, "PAUSE", "コミック DAYS" )
 	Case $EndMode = $EM_YMWEB
 		$PageKind = 3
-		MsgBOX( 0, "PAUSE", "ヤングジャンプ Web" )
+		MsgBOX( 0, "PAUSE", "ヤングマガジンWEB" )
 	Case $EndMode = $EM_EBOOK
 		$PageKind = 3
 		MsgBOX( 0, "PAUSE", "ebookjapan" )
