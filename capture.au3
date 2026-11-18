@@ -49,6 +49,8 @@ global $D_L_CLICK[2]
 
 global $D_CHECK_HALF_SIZE
 
+global $D_DEBUG_LOG = 0	; 1 のとき debug_log.txt へログを出力する
+
 ; 各サイトのローディング色・終了判定・ページ送り設定
 global $D_JUMPPLUS_BACKCOLOR
 
@@ -459,6 +461,8 @@ EndFunc
 	$D_L_CLICK[$YYY] = call( "Func_GetParaValue", "capture.ini","D_L_CLICK_Y")
 
 	$D_CHECK_HALF_SIZE = call( "Func_GetParaValue", "capture.ini","D_CHECK_HALF_SIZE")
+
+	$D_DEBUG_LOG = Number(call( "Func_GetParaValue", "capture.ini","D_DEBUG_LOG"))
 
 	$D_JUMPPLUS_BACKCOLOR = call( "Func_GetParaValue", "capture.ini","D_JUMPPLUS_BACKCOLOR")
 	$D_YOUNGJUMP_BACKCOLOR = call( "Func_GetParaValue", "capture.ini","D_YOUNGJUMP_BACKCOLOR")
@@ -1207,8 +1211,9 @@ Func EbookJapanLoading( $xx,$yy )
 	 Return Func_IsLoadingColor($D_EB_BACKCOLOR, $xx, $yy)
 EndFunc
 
-; デバッグログにメッセージを追記する。
+; デバッグログにメッセージを追記する。INI の D_DEBUG_LOG が 1 以外なら何もしない。
 Func WriteDebugLog($Message)
+	If $D_DEBUG_LOG <> 1 Then Return False
 	Local $fp = FileOpen(@ScriptDir & "\debug_log.txt", 1)
 	If $fp = -1 Then Return False
 	FileWriteLine($fp, @HOUR & ":" & @MIN & ":" & @SEC & " - " & $Message)
