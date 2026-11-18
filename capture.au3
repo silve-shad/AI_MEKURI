@@ -981,7 +981,7 @@ endfunc
 ; ヤンジャン(BLUE) の終端処理。3 回連続タイムアウト時にメインループから呼ばれる。
 ; 画面全体から終端色（DYJB_ENDCOLOR）の DYJB_ENDAREA_W × DYJB_ENDAREA_H 以上のエリアを探し、
 ; 見つかれば次の話へ遷移して True、見つからなければ False を返す。
-; エリア中心をダブルクリック → F11 → 「全画面」ボタン（DYJB_FULLSCR）をクリック → 9 秒待機。
+; エリア中心をダブルクリック → 「全画面」ボタン（DYJB_FULLSCR）をクリック → 9 秒待機。
 ; 待機後はメインループに戻り、キャプチャキー送信と {LEFT} の通常処理を続ける。
 Func Proc_YJBlueNext()
    local $area
@@ -1008,9 +1008,6 @@ Func Proc_YJBlueNext()
    ; カーソルが残ると検出位置の色が変わるため原点へ退避する
    MouseMove( 0, 0 )
    Sleep(3000)
-
-   Send("{F11}")
-   Sleep(2000)
 
    ; 「全画面」ボタンをクリック（判定位置とは無関係の座標）
    MouseClick( "left", $DYJB_FULLSCREEN[$XXX], $DYJB_FULLSCREEN[$YYY], 1 )
