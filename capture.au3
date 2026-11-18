@@ -398,6 +398,7 @@ endfunc
 Func EndMode_Change()
 	Local $name = ""
 	Local $extra = ""
+	Local $note = ""
 
 	$EndMode = $EndMode + 1
 
@@ -430,9 +431,10 @@ Func EndMode_Change()
 		$name = "BookWalker"
 	Case $EndMode = $EM_YJBLUE
 		$name = "ヤンジャン(BLUE)"
+		$note = "※ フルスクリーン状態から開始してください" & @CRLF
 	EndSelect
 
-	MsgBOX( 0, "PAUSE", $name & @CRLF & @CRLF & _
+	MsgBOX( 0, "PAUSE", $name & @CRLF & $note & @CRLF & _
 		"使用可能なホットキー:" & @CRLF & _
 		"  Alt+S : 開始／停止" & @CRLF & _
 		"  Alt+W : 待機時間切替（通常／長め）" & @CRLF & _
@@ -981,7 +983,7 @@ endfunc
 ; ヤンジャン(BLUE) の終端処理。3 回連続タイムアウト時にメインループから呼ばれる。
 ; 画面全体から終端色（DYJB_ENDCOLOR）の DYJB_ENDAREA_W × DYJB_ENDAREA_H 以上のエリアを探し、
 ; 見つかれば次の話へ遷移して True、見つからなければ False を返す。
-; エリア中心をダブルクリック → 「全画面」ボタン（DYJB_FULLSCR）をクリック → 9 秒待機。
+; キャプチャ 1 回 → エリア中心をダブルクリック → 「全画面」ボタン（DYJB_FULLSCR）をクリック → 9 秒待機。
 ; 待機後はメインループに戻り、キャプチャキー送信と {LEFT} の通常処理を続ける。
 Func Proc_YJBlueNext()
    local $area
@@ -1000,8 +1002,9 @@ Func Proc_YJBlueNext()
    $hitX = $area[0]
    $hitY = $area[1]
 
-   ; 最終ページはタイムアウト待ちの間に 3 回キャプチャ済みのため、ここでは追加しない
+   ; ダブルクリック前に終端画面を 1 回キャプチャする
    SoundPlay(@WindowsDir & "\media\notify.wav",1)
+   Send($D_CAPTURE_KEY)
    Sleep(1000)
 
    MouseClick( "left", $hitX, $hitY, 2 )
